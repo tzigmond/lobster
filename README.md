@@ -1,4 +1,5 @@
-# lob-live
+# LOBSTER
+### Limit Order Book Streaming Terminal for Exchange Readout
 
 A C++ limit order book that connects to Kraken's public WebSocket feed and maintains a live BTC/USD order book with nanosecond-level operation benchmarks. The core data structure is optimized in two stages — `std::map` baseline then a cache-friendly sorted flat array — with latency histograms (p50/p95/p99/p99.9) attributing each speedup to a specific hardware effect. A lock-free SPSC queue decouples the network feed thread from the book thread with no mutexes on the hot path. The whole thing renders live in a terminal UI showing bids, asks, spread, and a scrolling trade feed.
 
