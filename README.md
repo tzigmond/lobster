@@ -1,7 +1,7 @@
 # LOBSTER
 ### Limit Order Book Streaming Terminal for Exchange Readout
 
-A C++ limit order book that connects to Kraken's public WebSocket feed and maintains a live BTC/USD order book with nanosecond-level operation benchmarks. The core data structure is optimized in two stages — `std::map` baseline then a cache-friendly sorted flat array — with latency histograms (p50/p95/p99/p99.9) attributing each speedup to a specific hardware effect. A lock-free SPSC queue decouples the network feed thread from the book thread with no mutexes on the hot path. The whole thing renders live in a terminal UI showing bids, asks, spread, and a scrolling trade feed.
+A C++ limit order book connected to Kraken's live BTC/USD WebSocket feed, with a React web frontend and nanosecond-level benchmark story. The C++ engine (Boost.Beast + simdjson + lock-free SPSC queue + flat array LOB) outputs order book snapshots over a FastAPI WebSocket bridge to a browser UI featuring a live depth chart, animated order book, and performance comparison page.
 
 ---
 
@@ -12,15 +12,19 @@ A C++ limit order book that connects to Kraken's public WebSocket feed and maint
 WebSocket (Kraken)                       Order Book (LOB)
      ↓                                        ↑
 JSON Parser (simdjson)  →→ SPSC Queue →→  Book Updater
-                          (lock-free)
-                                              ↓
-                                         TUI Renderer (ftxui)
+                          (lock-free)          ↓
+                                        JSON → stdout
+                                               ↓
+                                        FastAPI (Python)
+                                               ↓
+                                        React browser UI
 ```
 
-- **Network thread** — WebSocket connection to `wss://ws.kraken.com/v2`, parses JSON into `BookUpdate` structs, pushes into SPSC queue
-- **Main thread** — drains the queue, applies updates to the order book, renders TUI at ~20 fps
-- **SPSC queue** — single-producer single-consumer ring buffer, zero mutexes, `alignas(64)` on head/tail to prevent false sharing
-- **Bench mode** — replaces the live feed with a synthetic generator; this is where nanosecond numbers come from
+- **Network thread** — `wss://ws.kraken.com/v2`, simdjson DOM parser, pushes `BookUpdate` structs into SPSC queue
+- **Main thread** — drains queue, applies to flat array LOB, emits JSON line to stdout every 50ms
+- **FastAPI bridge** — spawns C++ binary as asyncio subprocess, fans JSON lines out to all connected browser WebSocket clients
+- **React frontend** — live depth chart (Recharts), animated order book with volume bars, architecture and performance pages
+- **SPSC queue** — lock-free ring buffer, `alignas(64)` on head/tail, zero mutexes on hot path
 
 ---
 
@@ -28,37 +32,61 @@ JSON Parser (simdjson)  →→ SPSC Queue →→  Book Updater
 
 **Prerequisites**
 ```bash
-sudo apt install libboost-all-dev libssl-dev cmake build-essential
+sudo apt install libboost-all-dev libssl-dev cmake build-essential python3-venv nodejs npm
 ```
-simdjson and ftxui are fetched automatically by CMake.
+simdjson and ftxui are fetched by CMake at configure time.
 
-**Compile**
+**C++ engine**
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j$(nproc)
 ```
 
-**Run**
+**Web dependencies** (first time only)
 ```bash
-# Live mode — connects to Kraken, shows TUI
-./build/lobster --live BTC/USD
-
-# Benchmark mode — synthetic feed, prints latency histogram
-./build/lob_bench --n 1000000
+python3 -m venv server/.venv
+server/.venv/bin/pip install -r server/requirements.txt
+cd web && npm install
 ```
 
 ---
 
-## Results
+## Run
 
-| Stage | Insert p50 | Insert p99 | Lookup p50 | Data structure |
-|-------|-----------|-----------|-----------|----------------|
-| `std::map` baseline | TBD | TBD | TBD | Red-black tree |
-| Sorted flat array | TBD | TBD | TBD | Cache-friendly array |
+```bash
+# Full web stack — C++ engine + FastAPI bridge + React dev server
+./start.sh
+# then open http://localhost:5173
 
-Full counter readings and histograms in [`results/benchmarks.md`](results/benchmarks.md).
+# Terminal UI (original)
+./build/lobster --live BTC/USD
+
+# Benchmark
+./build/lob_bench --n 2000000
+```
 
 ---
+
+## Benchmark Results
+
+| Operation | p50 | p95 | p99 | p99.9 |
+|-----------|-----|-----|-----|-------|
+| `apply()` — insert / update / delete | 32 ns | 32 ns | 64 ns | 128 ns |
+| `best_bid() + best_ask()` — lookup | 16 ns | 16 ns | 16 ns | 16 ns |
+
+2M operations, 50-level realistic depth, AMD Ryzen 7 3700X, `-O3 -march=native`.
+
+---
+
+## Key Design Decisions
+
+**Price as `int64_t`** — prices stored as ticks (price × 1e8). Floating point equality is unreliable for price-level keying; integer comparison is exact and faster.
+
+**Sorted flat array over `std::map`** — top 10–20 price levels fit in two cache lines. Binary search on 20 elements costs ~3 comparisons in L1 cache vs. pointer-chasing through a red-black tree at 70–100 ns per node access. p50 drops from ~200 ns to 32 ns.
+
+**SPSC over mutex** — a mutex on the feed→book boundary adds 50–200 ns of contention per message. The SPSC ring buffer passes ownership with one atomic store and one atomic load, no locks, no false sharing.
+
+**simdjson DOM parser** — the on-demand parser has a forward-only cursor that silently drops fields accessed out of order. The DOM parser has no ordering constraint and is simpler to reason about for nested object access.
 
 ## System Specs
 
@@ -67,16 +95,4 @@ Full counter readings and histograms in [`results/benchmarks.md`](results/benchm
 | CPU | AMD Ryzen 7 3700X (Zen 2, 8c/16t) |
 | Memory | 32 GB DDR4 |
 | OS | Windows 10 / WSL2 Ubuntu 24.04 |
-| Compiler | g++ 13 (C++20) |
-
----
-
-## Key Design Decisions
-
-**Price as `int64_t`** — prices are stored as integer ticks (price × 1e8) rather than `double`. Floating point equality is unreliable for price-level keying; integer comparison is exact and faster.
-
-**SPSC over mutex** — a mutex on the feed→book boundary would serialize the two threads and add 50–200 ns per message. The SPSC ring buffer passes updates with a single atomic store/load, keeping the book thread's hot path allocation-free.
-
-**simdjson** — SIMD-accelerated JSON parser that operates on the raw message buffer without allocating. At Kraken's update rate this doesn't matter much, but at Binance rates (50–100 msg/s) it becomes meaningful, and it's the right habit.
-
-**Sorted flat array over `std::map`** — a red-black tree pointer-chases through heap memory for every operation. A flat sorted array of price levels fits the top 10 levels in two cache lines and makes binary search dramatically cheaper. The benchmark numbers show this directly.
+| Compiler | g++ 13 (C++20), `-O3 -march=native` |

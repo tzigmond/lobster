@@ -17,4 +17,13 @@ Makefile
 
 # Benchmark output
 *.csv
-*.json
+results/*.json
+
+# Web
+web/node_modules/
+web/dist/
+
+# Python
+server/.venv/
+__pycache__/
+*.pyc
