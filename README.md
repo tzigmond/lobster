@@ -41,7 +41,7 @@ cmake --build build -j$(nproc)
 **Run**
 ```bash
 # Live mode — connects to Kraken, shows TUI
-./build/lob_live --live BTC/USD
+./build/lobster --live BTC/USD
 
 # Benchmark mode — synthetic feed, prints latency histogram
 ./build/lob_bench --n 1000000

@@ -6,8 +6,8 @@
 #include <thread>
 
 static void usage() {
-    fprintf(stderr, "usage: lob_live --live <SYMBOL>\n");
-    fprintf(stderr, "  example: lob_live --live BTC/USD\n");
+    fprintf(stderr, "usage: lobster --live <SYMBOL>\n");
+    fprintf(stderr, "  example: lobster --live BTC/USD\n");
 }
 
 int main(int argc, char* argv[]) {

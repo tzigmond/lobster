@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(lob_live CXX)
+project(lobster CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -39,9 +39,9 @@ find_package(Threads REQUIRED)
 set(COMMON_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # ---------------------------------------------------------------------------
-# lob_live — full app: WebSocket feed + order book + TUI
+# lobster — full app: WebSocket feed + order book + TUI
 # ---------------------------------------------------------------------------
-add_executable(lob_live
+add_executable(lobster
     src/main.cpp
     src/book/order_book.cpp
     src/feed/ws_client.cpp
@@ -49,12 +49,12 @@ add_executable(lob_live
     src/tui/renderer.cpp
 )
 
-target_include_directories(lob_live PRIVATE
+target_include_directories(lobster PRIVATE
     ${COMMON_INCLUDES}
     ${Boost_INCLUDE_DIRS}
 )
 
-target_link_libraries(lob_live PRIVATE
+target_link_libraries(lobster PRIVATE
     simdjson
     ftxui::screen
     ftxui::dom
@@ -65,7 +65,7 @@ target_link_libraries(lob_live PRIVATE
     Threads::Threads
 )
 
-target_compile_options(lob_live PRIVATE -O3 -march=native)
+target_compile_options(lobster PRIVATE -O3 -march=native)
 
 # ---------------------------------------------------------------------------
 # lob_bench — benchmark only: no WebSocket, no TUI
