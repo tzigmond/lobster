@@ -1,44 +1,56 @@
 import asyncio
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
-_clients: set[WebSocket] = set()
-_latest: str = ""
+EXE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "build", "lobster"))
 
-async def _broadcast(msg: str) -> None:
-    global _latest
-    _latest = msg
+# Per-symbol state — engines start lazily on first subscriber
+_clients: dict[str, set[WebSocket]] = {}
+_latest:  dict[str, str]            = {}
+_engines: dict[str, asyncio.Task]   = {}
+
+
+async def _broadcast(symbol: str, msg: str) -> None:
+    _latest[symbol] = msg
     dead: set[WebSocket] = set()
-    for ws in list(_clients):
+    for ws in list(_clients.get(symbol, set())):
         try:
             await ws.send_text(msg)
         except Exception:
             dead.add(ws)
-    _clients.difference_update(dead)
+    if dead:
+        _clients.setdefault(symbol, set()).difference_update(dead)
+
 
 async def _engine_loop(symbol: str) -> None:
-    exe = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "build", "lobster"))
     while True:
         try:
             proc = await asyncio.create_subprocess_exec(
-                exe, "--web", symbol,
+                EXE, "--web", symbol,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL,
             )
             async for raw in proc.stdout:  # type: ignore[union-attr]
                 line = raw.decode().strip()
                 if line:
-                    await _broadcast(line)
+                    await _broadcast(symbol, line)
         except Exception as exc:
-            print(f"[engine] {exc}")
+            print(f"[engine:{symbol}] {exc}")
         await asyncio.sleep(2)
+
+
+def _ensure_engine(symbol: str) -> None:
+    if symbol not in _engines:
+        _engines[symbol] = asyncio.create_task(_engine_loop(symbol))
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    asyncio.create_task(_engine_loop("BTC/USD"))
+    _ensure_engine("BTC/USD")
     yield
+
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
@@ -48,17 +60,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.websocket("/ws")
-async def ws_endpoint(ws: WebSocket) -> None:
+async def ws_endpoint(ws: WebSocket, symbol: str = "BTC/USD") -> None:
     await ws.accept()
-    _clients.add(ws)
-    if _latest:
-        await ws.send_text(_latest)
+    _ensure_engine(symbol)
+    _clients.setdefault(symbol, set()).add(ws)
+
+    # Send cached snapshot immediately so the client doesn't stare at a blank screen
+    if symbol in _latest:
+        await ws.send_text(_latest[symbol])
+
     try:
+        # receive() handles text, binary, ping/pong, and close frames correctly.
+        # receive_text() raises on any non-text frame including browser pings.
         while True:
-            await ws.receive_text()
-    except WebSocketDisconnect:
-        _clients.discard(ws)
+            msg = await ws.receive()
+            if msg.get("type") == "websocket.disconnect":
+                break
+    except Exception:
+        pass
+    finally:
+        _clients.setdefault(symbol, set()).discard(ws)
+
 
 if __name__ == "__main__":
     import uvicorn
