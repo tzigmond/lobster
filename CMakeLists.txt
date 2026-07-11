@@ -29,7 +29,7 @@ set(FTXUI_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(ftxui)
 
 # Boost.Beast (WebSocket) + OpenSSL (wss://)
-find_package(Boost 1.74 REQUIRED)
+find_package(Boost 1.74 REQUIRED COMPONENTS system)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 
@@ -61,6 +61,7 @@ target_link_libraries(lob_live PRIVATE
     ftxui::component
     OpenSSL::SSL
     OpenSSL::Crypto
+    Boost::system
     Threads::Threads
 )
 
