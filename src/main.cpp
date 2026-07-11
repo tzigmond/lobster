@@ -1,15 +1,13 @@
 #include "book/order_book.h"
 #include "feed/ws_client.h"
 #include "tui/renderer.h"
-#include "queue/spsc_queue.h"
 #include <cstdio>
 #include <cstring>
-#include <string>
 #include <thread>
 
-static void print_usage() {
-    fprintf(stderr, "usage:\n");
-    fprintf(stderr, "  lob_live --live <SYMBOL>    connect to Kraken and show TUI\n");
+static void usage() {
+    fprintf(stderr, "usage: lob_live --live <SYMBOL>\n");
+    fprintf(stderr, "  example: lob_live --live BTC/USD\n");
 }
 
 int main(int argc, char* argv[]) {
@@ -23,21 +21,21 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (!live) { print_usage(); return 1; }
+    if (!live) { usage(); return 1; }
 
-    printf("lob_live: connecting to Kraken, symbol=%s\n", symbol.c_str());
+    OrderBook   book;
+    UpdateQueue queue;
+    WsClient    client(queue);
 
-    OrderBook     book;
-    UpdateQueue   queue;
-    WsClient      client(queue);
+    // Feed thread: WebSocket → parse → SPSC queue
+    std::thread feed_thread([&] { client.run(symbol); });
 
-    // Feed thread: WebSocket → SPSC queue
-    std::thread feed_thread([&]() { client.run(symbol); });
+    // Main thread: drain queue → book → TUI (all three on same thread, no locks needed)
+    run_tui(book, queue, symbol);
 
-    // Main thread: drain queue → book → TUI
-    run_tui(book, symbol);
-
+    // TUI exited (user pressed Q) — stop feed thread and wait
     client.stop();
     feed_thread.join();
+
     return 0;
 }
