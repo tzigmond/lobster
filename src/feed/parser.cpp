@@ -2,46 +2,36 @@
 #include <simdjson.h>
 #include <cstdio>
 
-// Thread-local parser reuses internal buffers across calls — no per-call allocation.
-static thread_local simdjson::ondemand::parser sjparser;
+// DOM parser: no forward-only cursor — fields can be accessed in any order.
+// The on-demand parser's strict ordering requirement was silently dropping "asks"
+// once the cursor advanced past that position, causing the crossed-book bug.
+static thread_local simdjson::dom::parser dparser;
 
 BookUpdate parse_message(const std::string& raw) {
     BookUpdate update;
-
     try {
-        // padded_string copies once into a buffer with SIMDJSON_PADDING bytes after content.
-        // The on-demand parser then works zero-copy from that buffer.
-        simdjson::padded_string ps(raw.data(), raw.size());
-        auto doc = sjparser.iterate(ps);
+        simdjson::dom::element doc = dparser.parse(raw);
 
-        std::string_view channel;
-        if (doc["channel"].get(channel) != simdjson::SUCCESS || channel != "book")
-            return update;  // heartbeat, subscription confirm, etc.
-
-        std::string_view type;
-        if (doc["type"].get(type) != simdjson::SUCCESS)
+        if (std::string_view(doc["channel"].get_string()) != "book")
             return update;
 
+        std::string_view type = doc["type"].get_string();
         update.is_snapshot = (type == "snapshot");
 
-        for (auto item : doc["data"].get_array()) {
-            for (auto bid : item["bids"].get_array()) {
-                double price = 0, qty = 0;
-                bid["price"].get(price);
-                bid["qty"].get(qty);
-                // +0.5 before truncation to handle floating point rounding
+        for (simdjson::dom::element item : doc["data"].get_array()) {
+            for (simdjson::dom::element bid : item["bids"].get_array()) {
+                double price = bid["price"].get_double();
+                double qty   = bid["qty"].get_double();
                 update.levels.push_back({Side::BID, (int64_t)(price * 1e8 + 0.5), qty});
             }
-            for (auto ask : item["asks"].get_array()) {
-                double price = 0, qty = 0;
-                ask["price"].get(price);
-                ask["qty"].get(qty);
+            for (simdjson::dom::element ask : item["asks"].get_array()) {
+                double price = ask["price"].get_double();
+                double qty   = ask["qty"].get_double();
                 update.levels.push_back({Side::ASK, (int64_t)(price * 1e8 + 0.5), qty});
             }
         }
     } catch (const simdjson::simdjson_error& e) {
-        fprintf(stderr, "[parser] JSON error: %s\n", e.what());
+        fprintf(stderr, "[parser] error: %s\n", e.what());
     }
-
     return update;
 }

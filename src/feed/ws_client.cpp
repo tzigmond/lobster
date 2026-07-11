@@ -80,9 +80,9 @@ void WsClient::run(const std::string& symbol) {
 
             std::string raw{static_cast<const char*>(buf.data().data()), buf.size()};
             auto update = parse_message(raw);
-            if (!update.levels.empty()) {
-                // Spin-push: if queue is full, drop the update rather than block
-                // At Kraken's update rate this should never happen
+            // Always push snapshots (even with empty levels) so the book.clear()
+            // in the consumer fires correctly. Drop only non-snapshot empty updates.
+            if (!update.levels.empty() || update.is_snapshot) {
                 if (!queue_.push(update))
                     fprintf(stderr, "[feed] queue full — update dropped\n");
             }
