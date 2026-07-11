@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    background-color: #080b14;
+    color: #e2e8f0;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1e2a3a;
+    border-radius: 2px;
+  }
+}
+
+@layer utilities {
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  }
+  .text-bid  { color: #00dc82; }
+  .text-ask  { color: #ff4560; }
+  .text-mid  { color: #818cf8; }
+  .bg-bid-10 { background-color: rgba(0, 220, 130, 0.10); }
+  .bg-ask-10 { background-color: rgba(255, 69, 96, 0.10); }
+  .border-bid-20 { border-color: rgba(0, 220, 130, 0.20); }
+  .border-ask-20 { border-color: rgba(255, 69, 96, 0.20); }
+}
