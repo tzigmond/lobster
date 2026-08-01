@@ -58,7 +58,7 @@ export function OrderBookTable({ bids, asks }: Props) {
         </div>
         {bids.length === 0 ? (
           <div className="h-40 flex items-center justify-center text-slate-700 text-xs font-mono">
-            —
+            -
           </div>
         ) : (
           bids.map(lvl => (
@@ -75,7 +75,7 @@ export function OrderBookTable({ bids, asks }: Props) {
         </div>
         {asks.length === 0 ? (
           <div className="h-40 flex items-center justify-center text-slate-700 text-xs font-mono">
-            —
+            -
           </div>
         ) : (
           asks.map(lvl => (

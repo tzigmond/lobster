@@ -10,7 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # ---------------------------------------------------------------------------
 include(FetchContent)
 
-# simdjson — SIMD-accelerated JSON parser
+# simdjson - SIMD-accelerated JSON parser
 FetchContent_Declare(
     simdjson
     GIT_REPOSITORY https://github.com/simdjson/simdjson.git
@@ -18,7 +18,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(simdjson)
 
-# ftxui — terminal UI framework
+# ftxui - terminal UI framework
 FetchContent_Declare(
     ftxui
     GIT_REPOSITORY https://github.com/ArthurSonzogni/FTXUI.git
@@ -39,7 +39,7 @@ find_package(Threads REQUIRED)
 set(COMMON_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # ---------------------------------------------------------------------------
-# lobster — full app: WebSocket feed + order book + TUI
+# lobster - full app: WebSocket feed + order book + TUI
 # ---------------------------------------------------------------------------
 add_executable(lobster
     src/main.cpp
@@ -68,11 +68,12 @@ target_link_libraries(lobster PRIVATE
 target_compile_options(lobster PRIVATE -O3 -march=native)
 
 # ---------------------------------------------------------------------------
-# lob_bench — benchmark only: no WebSocket, no TUI
+# lob_bench - benchmark only: no WebSocket, no TUI
 # ---------------------------------------------------------------------------
 add_executable(lob_bench
     src/bench/bench_book.cpp
     src/book/order_book.cpp
+    src/book/map_order_book.cpp
 )
 
 target_include_directories(lob_bench PRIVATE ${COMMON_INCLUDES})

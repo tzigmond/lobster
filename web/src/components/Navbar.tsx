@@ -3,12 +3,6 @@ import type { ConnState } from '../types'
 
 export const SYMBOLS = ['BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD', 'DOGE/USD']
 
-const STATUS_CONFIG: Record<ConnState, { dot: string; label: string }> = {
-  live:         { dot: 'bg-bid animate-pulse', label: 'LIVE' },
-  connecting:   { dot: 'bg-yellow-400 animate-pulse', label: 'CONNECTING' },
-  disconnected: { dot: 'bg-red-500', label: 'OFFLINE' },
-}
-
 interface Props {
   status:   ConnState
   symbol:   string
@@ -17,65 +11,80 @@ interface Props {
 
 export function Navbar({ status, symbol, onSymbol }: Props) {
   const { pathname } = useLocation()
-  const { dot, label } = STATUS_CONFIG[status]
 
-  const navLink = (to: string, text: string) => (
+  const isLive  = status === 'live'
+  const isConn  = status === 'connecting'
+
+  const navLink = (to: string, label: string) => (
     <Link
       to={to}
-      className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-        pathname === to
-          ? 'text-white bg-white/5'
-          : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+      className={`text-sm font-medium tracking-wide transition-colors ${
+        pathname === to ? 'text-hi' : 'text-muted hover:text-body'
       }`}
     >
-      {text}
+      {label}
     </Link>
   )
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/5 bg-[#080b14]/95 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 border-b border-rim bg-ink/95 backdrop-blur-sm">
+      <div className="max-w-screen-xl mx-auto px-5 h-12 flex items-center gap-6">
 
-        {/* Left: brand + page links */}
-        <div className="flex items-center gap-5 shrink-0">
-          <Link
-            to="/"
-            className="font-bold text-base tracking-widest bg-gradient-to-r from-bid to-mid bg-clip-text text-transparent"
-          >
-            LOBSTER
-          </Link>
-          <div className="flex items-center gap-0.5">
-            {navLink('/', 'Live')}
-            {navLink('/architecture', 'Architecture')}
-            {navLink('/performance', 'Performance')}
-          </div>
-        </div>
+        {/* Brand */}
+        <Link to="/" className="font-mono font-semibold text-sm tracking-[0.2em] text-hi shrink-0">
+          LOBSTER
+        </Link>
 
-        {/* Center: symbol switcher (only visible on Live page) */}
+        <div className="w-px h-4 bg-rim shrink-0" />
+
+        {/* Page nav */}
+        <nav className="flex items-center gap-5">
+          {navLink('/', 'Live')}
+          {navLink('/architecture', 'Architecture')}
+          {navLink('/performance', 'Performance')}
+        </nav>
+
+        {/* Symbol switcher - only on Live page */}
         {pathname === '/' && (
-          <div className="flex items-center gap-1">
-            {SYMBOLS.map(s => (
-              <button
-                key={s}
-                onClick={() => onSymbol(s)}
-                className={`px-2.5 py-1 rounded text-xs font-mono transition-all ${
-                  symbol === s
-                    ? 'bg-white/10 text-white border border-white/15'
-                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent'
-                }`}
-              >
-                {s.replace('/USD', '')}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="w-px h-4 bg-rim" />
+            <div className="flex items-center gap-1">
+              {SYMBOLS.map(s => {
+                const base = s.replace('/USD', '')
+                const active = symbol === s
+                return (
+                  <button
+                    key={s}
+                    onClick={() => onSymbol(s)}
+                    className={`px-2.5 py-1 rounded font-mono text-xs tracking-wide transition-all ${
+                      active
+                        ? 'bg-shell text-hi border border-rim'
+                        : 'text-muted hover:text-body border border-transparent'
+                    }`}
+                  >
+                    {base}
+                  </button>
+                )
+              })}
+            </div>
+          </>
         )}
 
-        {/* Right: status */}
-        <div className="flex items-center gap-2 text-xs font-mono text-slate-400 shrink-0">
-          <span className={`w-2 h-2 rounded-full ${dot}`} />
-          <span>{label}</span>
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Status */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              isLive ? 'bg-bid animate-pulse' : isConn ? 'bg-yellow-500 animate-pulse' : 'bg-ask'
+            }`}
+          />
+          <span className="font-mono text-[10px] tracking-widest text-muted">
+            {isLive ? 'LIVE' : isConn ? 'CONNECTING' : 'OFFLINE'}
+          </span>
         </div>
       </div>
-    </nav>
+    </header>
   )
 }

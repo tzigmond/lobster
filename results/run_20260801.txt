@@ -1,0 +1,13 @@
+lob_bench: 2000000 ops/trial, 9 trials, depth=50 levels/side
+clock: one steady_clock::now() pair costs ~16.6 ns on this host
+method: batched - time the full stream, divide by op count (mean ns/op)
+
+workload       structure     apply best    apply med  lookup best   lookup med
+--------       ---------     ----------    ---------  -----------   ----------
+steady-state   flat array        31.5 ns       32.5 ns        1.4 ns        1.5 ns
+steady-state   std::map          34.7 ns       36.4 ns        1.2 ns        1.3 ns
+insert-heavy   flat array        47.6 ns       49.9 ns        1.4 ns        1.6 ns
+insert-heavy   std::map          46.1 ns       46.8 ns        1.2 ns        1.3 ns
+
+flat-array apply() speedup vs std::map (best-of-9):
+  steady-state: 1.1x    insert-heavy: 1.0x

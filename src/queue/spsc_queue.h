@@ -4,13 +4,12 @@
 #include <cstddef>
 #include <optional>
 
-// TODO (stage 4): implement lock-free SPSC ring buffer
-//
-// Single-producer single-consumer queue using a power-of-2 ring buffer.
-// Key design decisions to implement:
+// Lock-free single-producer single-consumer queue over a power-of-2 ring buffer.
+// Used on the feed->book boundary: the network thread pushes BookUpdates, the
+// main thread pops them. Key design decisions:
 //   - head_ and tail_ each on their own 64-byte cache line (alignas(64))
 //     to prevent false sharing between producer and consumer threads
-//   - acquire/release memory ordering on load/store — no seq_cst overhead
+//   - acquire/release memory ordering on load/store - no seq_cst overhead
 //   - capacity must be a power of 2 so index wraparound is a bitmask (& mask_)
 //     instead of a modulo (which compiles to a division)
 //
@@ -18,8 +17,8 @@
 // and add 50-200 ns per message crossing. The atomic ring buffer passes
 // updates with a single store (producer) and single load (consumer).
 //
-// Ref: Preshing — "Writing a Generalized Concurrent Queue" (2014)
-// Ref: CppCon 2017 — Fedor Pikus, "C++ atomics, from basic to advanced"
+// Ref: Preshing - "Writing a Generalized Concurrent Queue" (2014)
+// Ref: CppCon 2017 - Fedor Pikus, "C++ atomics, from basic to advanced"
 
 template<typename T, size_t Capacity>
 class SPSCQueue {

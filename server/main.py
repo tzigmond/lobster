@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 EXE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "build", "lobster"))
 
-# Per-symbol state — engines start lazily on first subscriber
+# Per-symbol state - engines start lazily on first subscriber
 _clients: dict[str, set[WebSocket]] = {}
 _latest:  dict[str, str]            = {}
 _engines: dict[str, asyncio.Task]   = {}

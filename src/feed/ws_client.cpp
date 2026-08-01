@@ -40,7 +40,7 @@ void WsClient::run(const std::string& symbol) {
         WssStream stream{ioc, ssl_ctx};
         beast::get_lowest_layer(stream).connect(endpoints);
 
-        // SNI — required by Kraken, otherwise TLS handshake fails
+        // SNI - required by Kraken, otherwise TLS handshake fails
         if (!SSL_set_tlsext_host_name(stream.next_layer().native_handle(), HOST))
             throw beast::system_error{beast::error_code(
                 static_cast<int>(::ERR_get_error()), net::error::get_ssl_category())};
@@ -63,7 +63,7 @@ void WsClient::run(const std::string& symbol) {
             R"("],"depth":10}})";
         stream.write(net::buffer(sub));
 
-        // Read loop — exits when running_ is set false by stop()
+        // Read loop - exits when running_ is set false by stop()
         // Kraken sends heartbeats ~every 1s so stop() resolves within ~1s
         beast::flat_buffer buf;
         while (running_) {
@@ -84,7 +84,7 @@ void WsClient::run(const std::string& symbol) {
             // in the consumer fires correctly. Drop only non-snapshot empty updates.
             if (!update.levels.empty() || update.is_snapshot) {
                 if (!queue_.push(update))
-                    fprintf(stderr, "[feed] queue full — update dropped\n");
+                    fprintf(stderr, "[feed] queue full - update dropped\n");
             }
         }
 

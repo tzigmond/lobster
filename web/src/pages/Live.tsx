@@ -42,7 +42,7 @@ export function Live({ book, status, symbol, priceHistory }: Props) {
           <div className="text-slate-500 text-xs font-mono tracking-widest mb-1">{symbol}</div>
           <div className="flex items-baseline gap-3">
             <span className={`text-4xl font-bold font-mono ${hasMid ? 'text-white' : 'text-slate-700'}`}>
-              {hasMid ? `$${fmtPrice(mid)}` : '$—'}
+              {hasMid ? `$${fmtPrice(mid)}` : '$-'}
             </span>
             {pctChange !== null && (
               <span className={`text-sm font-mono font-medium ${pctChange >= 0 ? 'text-bid' : 'text-ask'}`}>
@@ -60,37 +60,37 @@ export function Live({ book, status, symbol, priceHistory }: Props) {
           <div className="text-right">
             <div className="text-slate-600 text-xs font-mono mb-0.5">SPREAD</div>
             <div className={`font-mono text-base font-semibold ${spread > 0 ? 'text-slate-300' : 'text-ask'}`}>
-              {spread !== 0 ? `$${fmtPrice(Math.abs(spread))}` : '—'}
+              {spread !== 0 ? `$${fmtPrice(Math.abs(spread))}` : '-'}
             </div>
           </div>
           <div className="text-right">
             <div className="text-slate-600 text-xs font-mono mb-0.5">BID DEPTH</div>
             <div className="font-mono text-sm text-bid">
-              {totalBidQty > 0 ? `${totalBidQty.toFixed(3)} ${base}` : '—'}
+              {totalBidQty > 0 ? `${totalBidQty.toFixed(3)} ${base}` : '-'}
             </div>
           </div>
           <div className="text-right">
             <div className="text-slate-600 text-xs font-mono mb-0.5">BEST BID</div>
             <div className="font-mono text-sm text-bid">
-              {bids[0] ? `$${fmtPrice(bids[0].price)}` : '—'}
+              {bids[0] ? `$${fmtPrice(bids[0].price)}` : '-'}
             </div>
           </div>
           <div className="text-right">
             <div className="text-slate-600 text-xs font-mono mb-0.5">ASK DEPTH</div>
             <div className="font-mono text-sm text-ask">
-              {totalAskQty > 0 ? `${totalAskQty.toFixed(3)} ${base}` : '—'}
+              {totalAskQty > 0 ? `${totalAskQty.toFixed(3)} ${base}` : '-'}
             </div>
           </div>
           <div className="text-right">
             <div className="text-slate-600 text-xs font-mono mb-0.5">BEST ASK</div>
             <div className="font-mono text-sm text-ask">
-              {asks[0] ? `$${fmtPrice(asks[0].price)}` : '—'}
+              {asks[0] ? `$${fmtPrice(asks[0].price)}` : '-'}
             </div>
           </div>
           <div className="text-right">
             <div className="text-slate-600 text-xs font-mono mb-0.5">MID</div>
             <div className="font-mono text-sm text-mid">
-              {hasMid ? `$${fmtPrice(mid)}` : '—'}
+              {hasMid ? `$${fmtPrice(mid)}` : '-'}
             </div>
           </div>
         </div>

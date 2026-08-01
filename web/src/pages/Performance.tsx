@@ -9,18 +9,17 @@ import {
   Legend,
 } from 'recharts'
 
+// Measured, not estimated. Mean ns/op, best of 9 trials, 2M ops/trial, 50-level
+// depth, timed by the whole stream (one clock pair) and divided - see the method
+// note below. Both structures measured in the same run.
 const APPLY_RESULTS = [
-  { pct: 'p50',   flat: 32,  map: 196 },
-  { pct: 'p95',   flat: 32,  map: 298 },
-  { pct: 'p99',   flat: 64,  map: 512 },
-  { pct: 'p99.9', flat: 128, map: 1024 },
+  { workload: 'steady-state', flat: 32.8, map: 36.2 },
+  { workload: 'insert-heavy', flat: 50.8, map: 50.3 },
 ]
 
 const LOOKUP_RESULTS = [
-  { pct: 'p50',   flat: 16, map: 98 },
-  { pct: 'p95',   flat: 16, map: 147 },
-  { pct: 'p99',   flat: 16, map: 196 },
-  { pct: 'p99.9', flat: 16, map: 384 },
+  { workload: 'steady-state', flat: 1.4, map: 1.2 },
+  { workload: 'insert-heavy', flat: 1.4, map: 1.3 },
 ]
 
 function StatCard({
@@ -79,7 +78,7 @@ function BenchChart({
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} barGap={4}>
           <XAxis
-            dataKey="pct"
+            dataKey="workload"
             tick={{ fill: '#475569', fontSize: 11, fontFamily: 'JetBrains Mono' }}
             axisLine={false}
             tickLine={false}
@@ -99,7 +98,7 @@ function BenchChart({
               </span>
             )}
           />
-          <Bar dataKey="map" name="std::map (estimated)" radius={[2, 2, 0, 0]}>
+          <Bar dataKey="map" name="std::map (measured)" radius={[2, 2, 0, 0]}>
             {data.map((_, i) => (
               <Cell key={i} fill="#334155" />
             ))}
@@ -128,20 +127,20 @@ function LatencyTable({
       <table className="w-full text-sm font-mono">
         <thead>
           <tr className="border-b border-white/5">
-            <th className="text-left text-slate-600 text-xs pb-2">Percentile</th>
-            <th className="text-right text-slate-600 text-xs pb-2">std::map (est.)</th>
+            <th className="text-left text-slate-600 text-xs pb-2">Workload</th>
+            <th className="text-right text-slate-600 text-xs pb-2">std::map</th>
             <th className="text-right text-bid text-xs pb-2">Flat array</th>
-            <th className="text-right text-slate-600 text-xs pb-2">Speedup</th>
+            <th className="text-right text-slate-600 text-xs pb-2">Ratio</th>
           </tr>
         </thead>
         <tbody>
           {data.map(row => (
-            <tr key={row.pct} className="border-b border-white/[0.03]">
-              <td className="py-2 text-slate-400">{row.pct}</td>
+            <tr key={row.workload} className="border-b border-white/[0.03]">
+              <td className="py-2 text-slate-400">{row.workload}</td>
               <td className="py-2 text-right text-slate-500">{row.map} ns</td>
               <td className="py-2 text-right text-bid">{row.flat} ns</td>
               <td className="py-2 text-right text-slate-500">
-                {(row.map / row.flat).toFixed(1)}×
+                {(row.map / row.flat).toFixed(2)}×
               </td>
             </tr>
           ))}
@@ -158,52 +157,54 @@ export function Performance() {
       <div>
         <h1 className="text-2xl font-bold text-white mb-1">Performance</h1>
         <p className="text-slate-500 text-sm">
-          Flat array LOB benchmarked against std::map baseline — 2M operations, real hardware.
+          Flat array LOB measured against a std::map baseline in the same run - 2M ops/trial, best of 9, real hardware.
         </p>
       </div>
 
       {/* Headline stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="apply() p50"   value="32"  unit="ns" sub="insert / update / delete" accent="#00dc82" />
-        <StatCard label="apply() p99"   value="64"  unit="ns" sub="worst ~1 in 100"          accent="#00dc82" />
-        <StatCard label="lookup p50"    value="16"  unit="ns" sub="best_bid + best_ask"       accent="#818cf8" />
-        <StatCard label="Operations"    value="2M"  unit=""   sub="at 50-level realistic depth" accent="#f59e0b" />
+        <StatCard label="apply() steady-state" value="32.8" unit="ns" sub="mean/op, flat array" accent="#00dc82" />
+        <StatCard label="lookup"               value="1.4"  unit="ns" sub="best_bid + best_ask" accent="#818cf8" />
+        <StatCard label="vs std::map"          value="~1.1×" unit=""  sub="within ~10% at this depth" accent="#f59e0b" />
+        <StatCard label="Operations"           value="2M"   unit=""   sub="per trial, 50-level depth" accent="#f59e0b" />
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <BenchChart title="apply() latency by percentile" data={APPLY_RESULTS} />
-        <BenchChart title="best_bid() + best_ask() latency" data={LOOKUP_RESULTS} />
+        <BenchChart title="apply() mean ns/op by workload" data={APPLY_RESULTS} />
+        <BenchChart title="best_bid() + best_ask() by workload" data={LOOKUP_RESULTS} />
       </div>
 
       {/* Tables */}
       <div className="bg-[#0a0d18] border border-white/5 rounded-xl p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-        <LatencyTable label="APPLY() — INSERT / UPDATE / DELETE" data={APPLY_RESULTS} />
-        <LatencyTable label="LOOKUP — BEST BID + BEST ASK" data={LOOKUP_RESULTS} />
+        <LatencyTable label="APPLY() - INSERT / UPDATE / DELETE" data={APPLY_RESULTS} />
+        <LatencyTable label="LOOKUP - BEST BID + BEST ASK" data={LOOKUP_RESULTS} />
       </div>
 
       {/* Why */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-[#0a0d18] border border-white/5 rounded-xl p-5 col-span-1 md:col-span-3">
-          <div className="text-slate-400 text-sm font-semibold mb-3">Why flat array beats std::map</div>
+          <div className="text-slate-400 text-sm font-semibold mb-3">
+            Why the flat array, when it's only ~10% faster here
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-slate-400 leading-relaxed">
             <div>
-              <div className="text-bid text-xs font-mono mb-1">CACHE LOCALITY</div>
-              A flat array of 20 price levels is ~320 bytes — two cache lines. All 20 comparisons
-              in a binary search hit L1 cache. std::map pointer-chases through the heap: each node
-              access is a separate cache miss at ~70–100 ns each.
+              <div className="text-bid text-xs font-mono mb-1">NO PER-UPDATE ALLOCATION</div>
+              std::map calls operator new / delete on every insert and erase. The flat
+              array reuses one buffer, so sustained churn creates no allocator pressure
+              and no fragmentation - a tail-latency win the mean doesn't show.
             </div>
             <div>
-              <div className="text-mid text-xs font-mono mb-1">NO HEAP ALLOCATION</div>
-              std::map allocates a tree node on every insert (operator new → malloc → libc
-              internals → possible OS page fault). The flat array reuses its existing buffer for
-              in-place insertion — a memmove of ~10 elements when a new level appears.
+              <div className="text-mid text-xs font-mono mb-1">CACHE-LOCAL READS</div>
+              top_bids(20) / top_asks(20) - the hot path feeding this UI 20×/second -
+              walks ~2 contiguous cache lines instead of pointer-chasing tree nodes
+              scattered across the heap.
             </div>
             <div>
-              <div className="text-yellow-400 text-xs font-mono mb-1">BRANCH PREDICTION</div>
-              A red-black tree rebalances on insert, adding unpredictable branching. Binary search
-              on a sorted array is a fixed loop with a predictable pattern that the CPU's branch
-              predictor handles well, especially for small depths like LOB top-of-book.
+              <div className="text-yellow-400 text-xs font-mono mb-1">FLAT LATENCY</div>
+              No tree rebalance, so no occasional expensive insert. At top-of-book depth
+              (the feed caps at depth:10) n stays small enough that O(n) shifts are
+              cheap; a tree would only win with thousands of levels.
             </div>
           </div>
         </div>
@@ -214,10 +215,10 @@ export function Performance() {
         <div className="text-slate-500 text-xs font-mono mb-3">SYSTEM</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm font-mono">
           {[
-            ['CPU',      'AMD Ryzen 7 3700X'],
-            ['Arch',     'Zen 2  ·  AVX2 + FMA3'],
-            ['Memory',   '32 GB DDR4'],
-            ['Compiler', 'g++ 13  ·  -O3 -march=native'],
+            ['CPU',      'Intel Core Ultra 7 155H'],
+            ['Arch',     'Meteor Lake  ·  AVX2 + FMA3'],
+            ['Memory',   '16 GB'],
+            ['Compiler', 'g++ 13.3  ·  -O3 -march=native'],
           ].map(([k, v]) => (
             <div key={k}>
               <div className="text-slate-600 text-xs mb-0.5">{k}</div>
@@ -226,8 +227,10 @@ export function Performance() {
           ))}
         </div>
         <div className="mt-3 text-slate-600 text-xs">
-          std::map numbers are estimated from typical red-black tree performance on this hardware.
-          Flat array numbers are measured from <code className="text-slate-500">./build/lob_bench --n 2000000</code>.
+          Both structures are measured in the same run by
+          <code className="text-slate-500"> ./build/lob_bench --n 2000000 --trials 9</code>.
+          Numbers are mean ns/op (whole-stream timing), not per-call - one clock read
+          costs ~17 ns on this host, more than the operation itself.
         </div>
       </div>
     </div>

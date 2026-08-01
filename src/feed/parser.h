@@ -29,6 +29,6 @@ struct BookUpdate {
 // qty == 0.0 in a Kraken update means the level was removed.
 //
 // Ref: Kraken WebSocket API v2 docs
-// Ref: simdjson on-demand docs — https://github.com/simdjson/simdjson
+// Ref: simdjson on-demand docs - https://github.com/simdjson/simdjson
 
 BookUpdate parse_message(const std::string& raw_json);

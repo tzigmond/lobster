@@ -105,17 +105,17 @@ export function Architecture() {
           <DetailCard
             accent="#818cf8"
             title="Price as int64_t ticks"
-            body="Prices are stored as integer ticks (price × 1e8). Floating point equality is unreliable for keying price levels — 64179.30 stored as a double might not compare equal to another 64179.30 computed through a different path. Integer comparison is exact and faster."
+            body="Prices are stored as integer ticks (price × 1e8). Floating point equality is unreliable for keying price levels - 64179.30 stored as a double might not compare equal to another 64179.30 computed through a different path. Integer comparison is exact and faster."
           />
           <DetailCard
             accent="#00dc82"
             title="Sorted flat array over std::map"
-            body="A red-black tree pointer-chases through heap memory for every insert and lookup. A flat sorted vector of 10–20 price levels fits entirely in L1 cache. Binary search on a 20-element array costs ~3 comparisons. The benchmark shows this directly: p50 drops from ~200ns to 32ns."
+            body="A flat sorted vector of 10-20 price levels fits entirely in L1 cache; binary search on 20 elements is ~3 comparisons. At this depth the measured apply() is within ~10% of std::map (see Performance) - so the flat array is chosen for cache-local top-of-book reads, zero per-update heap allocation, and flat latency, not a big-O win. A red-black tree would only pull ahead with thousands of levels."
           />
           <DetailCard
             accent="#00dc82"
             title="Lock-free SPSC queue"
-            body="The network thread produces book updates; the main thread consumes them. A mutex would serialize both threads and add 50–200ns of contention per message. The SPSC ring buffer passes ownership with a single atomic store and a single atomic load — no locks, no contention, no false sharing (head and tail are on separate cache lines via alignas(64))."
+            body="The network thread produces book updates; the main thread consumes them. A mutex would serialize both threads and add 50-200ns of contention per message. The SPSC ring buffer passes ownership with a single atomic store and a single atomic load - no locks, no contention, no false sharing (head and tail are on separate cache lines via alignas(64))."
           />
           <DetailCard
             accent="#f59e0b"
@@ -125,7 +125,7 @@ export function Architecture() {
           <DetailCard
             accent="#f59e0b"
             title="FastAPI subprocess bridge"
-            body="The C++ binary runs in --web mode, emitting one JSON line to stdout every 50ms. The FastAPI server spawns it as an asyncio subprocess, reads each line, and fans it out to all connected browser WebSocket clients. The Python code is ~50 lines — it's genuinely just a thin broadcast proxy."
+            body="The C++ binary runs in --web mode, emitting one JSON line to stdout every 50ms. The FastAPI server spawns it as an asyncio subprocess, reads each line, and fans it out to all connected browser WebSocket clients. The Python code is ~50 lines - it's genuinely just a thin broadcast proxy."
           />
           <DetailCard
             accent="#ff4560"

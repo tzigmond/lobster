@@ -2,7 +2,7 @@
 #include <simdjson.h>
 #include <cstdio>
 
-// DOM parser: no forward-only cursor — fields can be accessed in any order.
+// DOM parser: no forward-only cursor - fields can be accessed in any order.
 // The on-demand parser's strict ordering requirement was silently dropping "asks"
 // once the cursor advanced past that position, causing the crossed-book bug.
 static thread_local simdjson::dom::parser dparser;

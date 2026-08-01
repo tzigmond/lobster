@@ -29,7 +29,7 @@ static std::string fmt_qty(double qty) {
 void run_tui(OrderBook& book, UpdateQueue& queue, const std::string& symbol) {
     auto screen = ScreenInteractive::Fullscreen();
 
-    // Book snapshot — updated on the main thread via Custom event, read by renderer
+    // Book snapshot - updated on the main thread via Custom event, read by renderer
     std::vector<PriceLevel> bids, asks;
     double spread_val = 0.0;
     bool   connected  = false;
@@ -106,7 +106,7 @@ void run_tui(OrderBook& book, UpdateQueue& queue, const std::string& symbol) {
 
     auto component = CatchEvent(renderer, [&](Event e) {
         if (e == Event::Custom) {
-            // Drain the SPSC queue and apply updates to the book — all on main thread,
+            // Drain the SPSC queue and apply updates to the book - all on main thread,
             // so no lock needed between queue drain and book read by renderer
             while (auto upd = queue.pop()) {
                 connected = true;
