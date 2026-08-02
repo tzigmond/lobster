@@ -85,6 +85,12 @@ tree) baseline measured in the same run.
 N-op stream is timed with one clock pair and divided (real mean ns/op). `lookup` =
 `best_bid()` + `best_ask()`.
 
+**Read `apply()`, not `lookup`.** The `apply()` number is meaningful: it runs over
+2M distinct events with data-dependent binary-search branching. The `lookup`
+number is close to meaningless as a latency because the loop reads the same
+unchanged top-of-book every iteration, which the CPU pipelines to near-nothing; it
+only really confirms the read is O(1) and trivially cheap.
+
 **What it shows:** at top-of-book depth the flat array and `std::map` are within
 ~10% on `apply()` and trade places under heavy inserts - with n this small,
 O(log n) vs O(n) barely differs. The flat array's real advantages are no per-update

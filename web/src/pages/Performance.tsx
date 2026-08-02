@@ -164,7 +164,7 @@ export function Performance() {
       {/* Headline stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="apply() steady-state" value="32.8" unit="ns" sub="mean/op, flat array" accent="#00dc82" />
-        <StatCard label="lookup"               value="1.4"  unit="ns" sub="best_bid + best_ask" accent="#818cf8" />
+        <StatCard label="best bid/ask read"    value="O(1)" unit=""  sub="constant-time, cache-local" accent="#818cf8" />
         <StatCard label="vs std::map"          value="~1.1×" unit=""  sub="within ~10% at this depth" accent="#f59e0b" />
         <StatCard label="Operations"           value="2M"   unit=""   sub="per trial, 50-level depth" accent="#f59e0b" />
       </div>
@@ -180,6 +180,13 @@ export function Performance() {
         <LatencyTable label="APPLY() - INSERT / UPDATE / DELETE" data={APPLY_RESULTS} />
         <LatencyTable label="LOOKUP - BEST BID + BEST ASK" data={LOOKUP_RESULTS} />
       </div>
+      <p className="text-slate-600 text-xs -mt-4 max-w-3xl">
+        Note on lookup: the read loop hits the same unchanged top-of-book each
+        iteration, so the CPU pipelines it to near-nothing. The ~1 ns figure really
+        just confirms the read is O(1) and trivially cheap, not a realistic
+        post-update latency. apply() is the meaningful number, since it runs over
+        2M distinct events with data-dependent branching.
+      </p>
 
       {/* Why */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -43,6 +43,11 @@ Two workloads:
 | insert-heavy | Sorted flat array | 50.8 | 51.7 | 1.4 | 1.7 |
 | insert-heavy | `std::map` (red-black tree) | 50.3 | 57.1 | 1.3 | 1.7 |
 
+The `lookup` column is not a realistic latency: the loop reads the same unchanged
+top-of-book every iteration, so the CPU pipelines it away. It only confirms the
+read is O(1) and essentially free. `apply()` is the number that means something,
+since it runs over 2M distinct events with data-dependent branching.
+
 `lookup` = `best_bid()` + `best_ask()` (one call each).
 
 ---
